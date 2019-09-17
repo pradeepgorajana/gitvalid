@@ -1,1 +1,30 @@
-test
+'use strict';
+
+const suite = require('core/suite');
+const tools = require('core/tools');
+const articlesPayload = tools.requirePayload(`${__dirname}/assets/resourcesArticles-create.json`);
+const updatePayload = tools.requirePayload(`${__dirname}/assets/resourcesArticles-update.json`);
+const statusPayload = tools.requirePayload(`${__dirname}/assets/resourcesArticlesStatus-update.json`);
+const cloud = require('core/cloud');
+articlesPayload['UrlName'] = tools.randomStr(10);
+updatePayload['UrlName'] = tools.randomStr(10);
+
+const resourcesArticlesTest = {
+  "createPayload": articlesPayload,
+  "updatePayload": updatePayload,
+  "primaryKey": "Id"
+};
+
+suite.forElement('helpdesk', 'resources/articles', tools.constructChurrosOptions(resourcesArticlesTest), (test) => {
+  test.should.supportCruds();
+  test.should.supportPagination();
+  test.should.supportCeqlSearch("Id");
+
+  it('should allow Update of status of articles /hubs/helpdesk/resources/articles/status', () => {
+    let articleId;
+    return cloud.post('/hubs/helpdesk/resources/articles', articlesPayload)
+      .then(r => articleId = r.body.Id)
+      .then(r => cloud.put(`${test.api}/${articleId}/status`, statusPayload))
+      .then(r => cloud.delete(`${test.api}/${articleId}`));
+  });
+});
